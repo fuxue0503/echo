@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Echo Sentinel — The Orb</title>
+  <meta name="description" content="在波动中寻找不动心。一个交易员的精神守望者，实时监控链上行为与心理状态。">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header>
+    <div class="logo">◯ Echo Sentinel</div>
+    <div class="tagline">在波动中寻找不动心</div>
+  </header>
+
+  <!-- ── Wallet Bar ── -->
+  <div class="wallet-bar">
+    <input
+      id="wallet-input"
+      type="text"
+      placeholder="输入 X Layer 钱包地址 0x..."
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <button id="connect-btn">监控</button>
+  </div>
+
+  <!-- ── Demo Buttons ── -->
+  <div class="demo-bar">
+    <span style="font-size:11px;color:var(--text-dim);line-height:26px;">演示场景：</span>
+    <button class="demo-btn" data-scenario="profit_low">小盈 L1</button>
+    <button class="demo-btn" data-scenario="profit_high">大盈 L3</button>
+    <button class="demo-btn" data-scenario="loss_low">小亏 L1</button>
+    <button class="demo-btn" data-scenario="loss_high">大亏 L3</button>
+  </div>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- The Orb -->
+    <div class="orb-section">
+      <div class="sanity-tooltip" id="sanity-score">理智分 — / 100</div>
+      <canvas id="orb-canvas" title="右键单击进入禅定复盘"></canvas>
+      <div class="loading-dots" id="loading-dots">
+        <span></span><span></span><span></span>
+      </div>
+      <div class="orb-label" id="orb-label">IDLE · 待机</div>
+    </div>
+
+    <!-- Info Card (populated by JS) -->
+    <div id="info-card" class="info-card" style="display:none;"></div>
+
+  </main>
+
+  <!-- ── Zen Review Overlay ── -->
+  <div class="zen-overlay" id="zen-overlay">
+    <div class="zen-quote" id="zen-quote"></div>
+    <div class="zen-close" id="zen-close">· 点击关闭 · 回到市场 ·</div>
+  </div>
+
+  <!-- ── Footer ── -->
+  <footer>
+    Echo Sentinel v2.0 · X Layer (Chain 196) · 右键 The Orb 进入禅定复盘
+  </footer>
+
+  <script src="orb.js"></script>
+</body>
+</html>

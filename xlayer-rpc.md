@@ -1,0 +1,89 @@
+# RPC endpoints
+
+<Tip title="Note">There is a limit of 100 requests per second per IP address on both the mainnet and testnet.</Tip>
+
+## Mainnet (chain-id: 0xC4, 196 in decimals)
+RPC:
+- ChainID: 196
+- https://rpc.xlayer.tech
+- https://xlayerrpc.okx.com
+
+## Testnet (chain-id: 0x7A0, 1952 in decimals)
+RPC:
+- ChainID: 1952
+- https://testrpc.xlayer.tech/terigon
+- https://xlayertestrpc.okx.com/terigon
+
+## Infrastructure providers
+Public RPCs may have rate limits or traffic restrictions. For dedicated free RPC URLs, consider the following providers:
+- [QuickNode](https://www.quicknode.com/ "QuickNode")
+- [Blockdaemon](https://www.blockdaemon.com/ "Blockdaemon")
+- [Getblock](https://getblock.io/ "Getblock")
+- [ZAN](https://zan.top/home "ZAN")
+- [Chainstack](https://chainstack.com/ "Chainstack")
+- [Unifra](https://unifra.io/ "Unifra")
+- [BlockPI](https://blockpi.io/ "BlockPI")
+
+## Prerequisite readings
+Before you begin using RPC endpoints on X Layer, it’s important to read the relevant articles for guidance:
+- [Ethereum JSON-RPC](https://eth.wiki/json-rpc/API "Ethereum JSON-RPC")
+
+## Starting HTTP JSON-RPC
+To start the HTTP JSON-RPC, curl method is recommended:
+```shell
+# mainnet
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H "Content-Type: application/json" https://rpc.xlayer.tech
+# testnet
+curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' -H "Content-Type: application/json" https://testrpc.xlayer.tech/terigon
+```
+
+## JSON-RPC methods
+### 1. Ethereum compatible RPC
+Here you will find the list of all supported JSON RPC endpoints and the differences between them in comparison to the default behavior of an Ethereum node.
+If a specific endpoint is not in the list below, it means that this specific endpoint is not supported yet. 
+You can find more details in [Ethereum’s JSON-RPC doc](https://ethereum.org/en/developers/docs/apis/json-rpc/ "Ethereum's JSON-RPC doc").
+
+|Method|Namespace|Notes|
+|:----|:----|:----|
+|web3_clientVersion|Web3|Get the Web3 client version|
+|web3_sha3|Web3|Returns keccak-256 (not the standardized SHA3-256) of the given data|
+|net_version|Net|Returns the current network ID|
+|eth_protocolVersion|ETH|Response is always 'zero'|
+|eth_syncing|ETH|Returns an object with data about the sync status or false|
+|eth_gasPrice|ETH|Returns the current Gas price in OKB|
+|eth_blockNumber|ETH|Returns the current block height|
+|eth_chainId|ETH|Returns the chain’s identifier in hex format|
+|eth_getBalance|ETH|Returns the account balance for a given account address and block number|
+|eth_getStorageAt|ETH|Returns the storage address for a given account address|
+|eth_getTransactionCount|ETH|Returns the total transaction for a given account address and block number|
+|eth_getBlockTransactionCountByNumber|ETH|Returns the total transaction count for a given block number|
+|eth_getBlockTransactionCountByHash|ETH|Returns the total transaction count for a given block hash|
+|eth_getCode|ETH|Returns the code for a given account address and block number|
+|eth_sign|ETH|The sign method calculates an Ethereum specific signature|
+|eth_sendTransaction|ETH|Sends transaction from given account to a given account|
+|eth_sendRawTransaction|ETH|Creates a new message call transaction or a contract creation for signed transactions|
+|eth_call|ETH|Executes a new message call immediately without creating a transaction on the blockchain|
+|eth_estimateGas|ETH|Returns an estimated value of the Gas required to send the transaction|
+|eth_getBlockByNumber|ETH|Returns information about a block by block number|
+|eth_getBlockByHash|ETH|Returns the block info given the hash found in the command above and a bool|
+|eth_getTransactionByHash|ETH|Returns transaction details from a transaction hash|
+|eth_getTransactionByBlockHashAndIndex|ETH|Returns transaction details given the block hash and the transaction index|
+|eth_getTransactionReceipt|ETH|Returns the receipt of a transaction by transaction hash|
+|eth_newFilter|ETH|Creates a new filter using topics of some kind|
+|eth_newBlockFilter|ETH|Creates a filter in the node, to notify when a new block arrives|
+|eth_uninstallFilter|ETH|Removes the filter with the given filter ID|
+|eth_getFilterChanges|ETH|Polling method for a filter, which returns an array of logs which occurred since the last poll|
+|eth_getLogs|ETH|Returns an array of all logs matching a given filter object|
+|eth_getFilterLogs|ETH|Returns an array of all logs matching filters with the given ID|
+|eth_getTransactionbyBlockNumberAndIndex|ETH|Returns transaction details by block height and block index|
+|eth_getCompilers|ETH|Response is always empty|
+|eth_getUncleCountByBlockHash|ETH|Response is always empty|
+|eth_getUncleCountByBlockNumber|ETH|Response is always empty|
+|eth_getUncleByBlockHashAndIndex|ETH|Response is always empty|
+|eth_getUncleByBlockNumberAndIndex|ETH|Response is always empty|
+|eth_subscribe|WebSocket|Subscribe using JSON-RPC notifications|
+|eth_unsubscribe|WebSocket|Unsubscribe from an event using the subscription ID|
+|debug_traceBlockByHash|Debug|Returns the possible tracing result number by executing all transactions in the block specified by the block hash with a tracer|
+|debug_traceBlockByNumber|Debug|Returns the tracing result by executing all transactions in the block specified by number with a tracer (trace mode required)|
+|debug_traceTransaction|Debug|Returns all traces of a given transaction|
+|txpool_content|Txpool|Response is always empty|

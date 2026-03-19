@@ -1,0 +1,16 @@
+{
+  "name": "echo-sentinel-orb",
+  "version": "1.0.0",
+  "description": "Echo Sentinel — The Orb Desktop Widget",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron ."
+  },
+  "keywords": [],
+  "author": "Echo Sentinel",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^34.0.0"
+  }
+}

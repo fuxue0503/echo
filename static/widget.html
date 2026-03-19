@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Orb</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Noto+Serif+SC:wght@300;400&display=swap');
+
+    :root {
+      --idle:    #00d4c8;
+      --mon:     #f0b429;
+      --int:     #c0392b;
+      --bg:      rgba(10, 11, 15, 0.92);
+      --surface: rgba(255,255,255,0.05);
+      --border:  rgba(255,255,255,0.09);
+      --text:    #e8e9f0;
+      --dim:     rgba(232,233,240,0.45);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: transparent; width: 320px; height: 440px; overflow: hidden; font-family: 'Inter', sans-serif; user-select: none; }
+
+    /* ── Outer Shell ─── */
+    .widget {
+      width: 320px; height: 440px;
+      background: var(--bg);
+      border-radius: 24px;
+      border: 1px solid var(--border);
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+      display: flex; flex-direction: column; align-items: center;
+      padding: 14px 16px 14px;
+      position: relative; overflow: hidden;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.06) inset;
+    }
+    .widget::before {
+      content: ''; position: absolute; inset: 0; border-radius: 24px;
+      background: radial-gradient(ellipse 80% 50% at 50% 0%, var(--glow, rgba(0,212,200,0.07)) 0%, transparent 70%);
+      pointer-events: none; transition: background 0.8s ease;
+    }
+
+    /* ── Drag Bar ─── */
+    .drag-bar {
+      width: 100%; height: 26px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: grab; flex-shrink: 0; margin-bottom: 6px;
+    }
+    .drag-bar:active { cursor: grabbing; }
+    .logo-text { font-size: 10px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); }
+    .controls { display: flex; gap: 6px; }
+    .ctrl-btn { width: 14px; height: 14px; border-radius: 50%; border: none; cursor: pointer; transition: opacity 0.2s; }
+    .ctrl-btn:hover { opacity: 0.75; }
+    .ctrl-btn.minimize { background: #f0b429; }
+    .ctrl-btn.close    { background: #c0392b; }
+
+    /* ── Wallet Input ─── */
+    .wallet-section { width: 100%; margin-bottom: 8px; position: relative; flex-shrink: 0; }
+    .wallet-input-wrap { display: flex; gap: 6px; }
+    .wallet-input {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 7px 10px; color: var(--text);
+      font-size: 11px; font-family: monospace; outline: none;
+      transition: border-color 0.2s;
+    }
+    .wallet-input:focus { border-color: var(--idle); }
+    .wallet-input::placeholder { color: var(--dim); }
+    .connect-btn {
+      background: var(--idle); border: none; border-radius: 8px;
+      padding: 7px 12px; color: #000; font-size: 11px; font-weight: 600;
+      cursor: pointer; flex-shrink: 0; transition: opacity 0.2s;
+    }
+    .connect-btn:hover { opacity: 0.82; }
+    .wallet-status { margin-top: 4px; font-size: 10px; color: var(--dim); text-align: center; min-height: 14px; }
+
+    /* ── The Orb ─── */
+    .orb-wrap { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    #orb-canvas { border-radius: 50%; cursor: default; }
+    .loading-ring { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--idle); border-radius: 50%; animation: spin 0.8s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .state-label { font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin-top: 8px; }
+    .level-dots { display: flex; gap: 5px; margin-top: 5px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border); transition: all 0.4s; }
+    .dot.on { background: var(--idle); box-shadow: 0 0 6px var(--idle); }
+    .dot.on.red { background: var(--int); box-shadow: 0 0 6px var(--int); }
+
+    /* ── Info Card ─── */
+    .card {
+      width: 100%; flex: 1; min-height: 0; margin-top: 10px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 7px;
+      overflow-y: auto; overflow-x: hidden; animation: fadeUp 0.4s ease both;
+    }
+    .card::-webkit-scrollbar { width: 4px; }
+    .card::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+    @keyframes fadeUp { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 5px; font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; width: fit-content; flex-shrink: 0; }
+    .badge.zen { background: rgba(0,212,200,0.12); color: var(--idle); }
+    .badge.int { background: rgba(192,57,43,0.15); color: var(--int); }
+    .card-title { font-family: 'Noto Serif SC', serif; font-size: 15px; font-weight: 400; color: var(--text); flex-shrink: 0; }
+    .card-body { font-family: 'Noto Serif SC', serif; font-size: 11px; font-weight: 300; line-height: 1.75; color: rgba(232,233,240,0.7); flex-shrink: 0; white-space: pre-wrap; margin-bottom: 8px; }
+
+    .pnl-row { display: flex; gap: 16px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); align-items: flex-end; flex-shrink: 0; }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat-label { font-size: 9px; color: var(--dim); letter-spacing: 0.08em; text-transform: uppercase; }
+    .stat-value { font-size: 13px; font-weight: 500; }
+    .pos { color: var(--idle); } .neg { color: var(--int); }
+
+    /* ── Audio / x402 Panel ─── */
+    .audio-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 2px; }
+    .unlock-btn {
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 7px 12px;
+      border-radius: 8px; border: 1px solid rgba(0,212,200,0.3);
+      background: rgba(0,212,200,0.07);
+      color: var(--idle); font-size: 11px; font-weight: 500;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .unlock-btn:hover { background: rgba(0,212,200,0.13); border-color: var(--idle); }
+    .unlock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .pay-status { font-size: 10px; color: var(--dim); text-align: center; flex-shrink: 0; }
+    .audio-player { width: 100%; border-radius: 6px; accent-color: var(--idle); flex-shrink: 0; height: 32px; }
+    .audio-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; flex-shrink: 0; padding-bottom: 4px; }
+      font-size: 9px; color: var(--dim); line-height: 1.6;
+      background: rgba(0,212,200,0.04); border: 1px solid rgba(0,212,200,0.1);
+      border-radius: 6px; padding: 6px 8px; display: none;
+    }
+
+    /* ── Waiting ─── */
+    .waiting {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 8px; color: var(--dim);
+      font-size: 11px; text-align: center; line-height: 1.7; padding: 6px;
+    }
+    .demo-pills { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
+    .demo-pill {
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 6px; padding: 4px 10px;
+      color: rgba(232,233,240,0.5); font-size: 10px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .demo-pill:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .lang-toggle {
+      position: absolute; right: 8px; top: 10px;
+      padding: 3px 10px; border-radius: 6px;
+      font-size: 11px; font-weight: 800;
+      color: #fff; background: #00d4c8;
+      border: 1px solid rgba(255,255,255,0.3);
+      cursor: pointer; z-index: 100;
+      box-shadow: 0 0 10px rgba(0,212,200,0.3);
+      transition: all 0.2s; user-select: none;
+    }
+    .lang-toggle:hover { background: #00f0e0; transform: scale(1.05); }
+  </style>
+</head>
+<body>
+<div class="widget" id="widget">
+
+  <!-- Drag bar -->
+  <div class="drag-bar" id="drag-bar">
+    <span class="logo-text"></span>
+    <div class="lang-toggle" id="lang-toggle" onclick="toggleLang()">EN</div>
+  </div>
+
+  <!-- Wallet Input -->
+  <div class="wallet-section">
+    <div class="wallet-input-wrap">
+      <input id="wallet-input" class="wallet-input" type="text" placeholder="输入钱包地址 0x..." data-i18n-placeholder="wallet_placeholder" spellcheck="false" autocomplete="off">
+      <button id="connect-btn" class="connect-btn" data-i18n="connect">连接</button>
+    </div>
+    <div class="wallet-status" id="wallet-status"></div>
+  </div>
+
+  <!-- The Orb -->
+  <div class="orb-wrap">
+    <canvas id="orb-canvas" width="130" height="130"></canvas>
+    <div class="loading-ring" id="loading-ring"></div>
+    <div class="state-label" id="state-label">IDLE · 待机</div>
+    <div class="level-dots">
+      <div class="dot" id="d1"></div>
+      <div class="dot" id="d2"></div>
+      <div class="dot" id="d3"></div>
+    </div>
+  </div>
+
+  <!-- Content area -->
+  <div id="content-area" style="width:100%;display:flex;flex-direction:column;flex:1;min-height:0;">
+    <!-- Waiting / Demo State -->
+    <div class="waiting card" id="waiting-panel">
+      <span style="font-size:13px;">在交易中保持不动心</span>
+      <span style="font-size:10px;color:rgba(232,233,240,0.25);">输入钱包地址后自动连接，获得基于真实持仓的 AI 冥想</span>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="demo-pill" data-s="profit_high" data-i18n="test_profit" style="font-size:10px; padding:4px 8px; border-radius:4px; background:rgba(0,212,200,0.1); border:1px solid rgba(0,212,200,0.3); color:#fff; cursor:pointer;">测试 AI (大盈)</button>
+        <button class="demo-pill" data-s="loss_high" data-i18n="test_loss" style="font-size:10px; padding:4px 8px; border-radius:4px; background:rgba(255,60,100,0.1); border:1px solid rgba(255,60,100,0.3); color:#fff; cursor:pointer;">测试 AI (大亏)</button>
+      </div>
+    </div>
+    <!-- Philosophical Card (hidden until data loaded) -->
+    <div class="card" id="card" style="display:none;"></div>
+  </div>
+
+</div>
+
+<script>
+// ─── WebGL Orb ─────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('orb-canvas');
+const gl = canvas.getContext('webgl');
+const S = 130;
+
+const VS = `attribute vec2 p; void main(){gl_Position=vec4(p,0.,1.);}`;
+const FS = `
+precision mediump float;
+uniform float u_t; uniform vec2 u_r; uniform vec3 u_c; uniform float u_i; uniform float u_shk;
+float noise(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+void main(){
+  vec2 uv=(gl_FragCoord.xy/u_r)*2.-1.; uv.y*=-1.;
+  float sp=0.6+u_i*2.5;
+  float wb=sin(u_t*sp+uv.x*3.)*.022*(1.+u_i);
+  vec2 d=uv+vec2(wb,wb*.7);
+  float dist=length(d)-.62;
+  float orb=smoothstep(.01,-.04,dist);
+  float core=exp(-length(uv)*2.5)*.6;
+  float br=.5+.5*sin(u_t*(.8+u_i*1.5));
+  float pulse=exp(-length(uv)*(3.5-br*.8))*.4;
+  float pts=0.;
+  if(u_i>.2){for(float i=0.;i<5.;i++){float a=i/5.*6.2832+u_t*sp*.5; float r=.55+sin(u_t*2.1+i)*.06; vec2 pp=vec2(cos(a),sin(a))*r; pts+=smoothstep(.03,0.,length(uv-pp))*u_i;}}
+  float shk=0.;
+  if(u_shk>.01){float w=abs(sin(length(uv)*8.-u_t*6.))*u_shk; shk=w*exp(-length(uv)*1.5);}
+  float bright=orb*(core+pulse)+pts*.6+shk;
+  vec3 col=u_c*bright;
+  float og=exp(-max(dist,0.)*4.)*.15; col+=u_c*og;
+  gl_FragColor=vec4(col,orb*.95+og);
+}`;
+
+function mkSh(src, type) { const s=gl.createShader(type); gl.shaderSource(s,src); gl.compileShader(s); return s; }
+const prog = gl.createProgram();
+gl.attachShader(prog, mkSh(VS, gl.VERTEX_SHADER));
+gl.attachShader(prog, mkSh(FS, gl.FRAGMENT_SHADER));
+gl.linkProgram(prog); gl.useProgram(prog);
+const buf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,1,1]), gl.STATIC_DRAW);
+const pLoc = gl.getAttribLocation(prog,'p');
+gl.enableVertexAttribArray(pLoc); gl.vertexAttribPointer(pLoc,2,gl.FLOAT,false,0,0);
+const uT=gl.getUniformLocation(prog,'u_t'), uR=gl.getUniformLocation(prog,'u_r'),
+      uC=gl.getUniformLocation(prog,'u_c'), uI=gl.getUniformLocation(prog,'u_i'),
+      uShk=gl.getUniformLocation(prog,'u_shk');
+const COLS = {
+  IDLE:         {r:0.00,g:0.83,b:0.78,glow:'rgba(0,212,200,0.07)'},
+  MONITORING:   {r:0.94,g:0.71,b:0.16,glow:'rgba(240,180,41,0.07)'},
+  INTERVENTION: {r:0.75,g:0.22,b:0.17,glow:'rgba(192,57,43,0.10)'},
+};
+let orbState='IDLE', ci=0, shk=0;
+(function render(t){
+  const ts=t*.001, col=COLS[orbState];
+  const ti=orbState==='IDLE'?0:orbState==='MONITORING'?.5:1;
+  ci+=(ti-ci)*.05;
+  shk = orbState==='INTERVENTION' ? Math.min(shk+.03,.5) : shk*.92;
+  gl.viewport(0,0,S,S); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  gl.uniform1f(uT,ts); gl.uniform2f(uR,S,S); gl.uniform3f(uC,col.r,col.g,col.b);
+  gl.uniform1f(uI,ci); gl.uniform1f(uShk,shk);
+  gl.drawArrays(gl.TRIANGLE_STRIP,0,4);
+  canvas.style.boxShadow=`0 0 ${18+ci*26}px ${col.glow.replace('0.07','0.35').replace('0.10','0.4')}`;
+  document.getElementById('widget').style.setProperty('--glow', col.glow);
+  requestAnimationFrame(render);
+})(0);
+
+// ─── State helpers ─────────────────────────────────────────────────────────────
+const i18n = {
+  cn: {
+    monitoring: 'MONITORING · 监控中',
+    idle: 'IDLE · 待机',
+    alert: 'ALERT · 干预模式',
+    wallet_placeholder: '输入钱包地址 0x...',
+    connect: '连接',
+    test_profit: '测试 AI (大盈)',
+    test_loss: '测试 AI (大亏)',
+    meditation: '在交易中保持不动心',
+    automatic: '输入钱包地址后自动连接，获得基于真实持仓的 AI 冥想',
+    ai_badge: '✦ AI 洞见'
+  },
+  en: {
+    monitoring: 'MONITORING · Active',
+    idle: 'IDLE · Standby',
+    alert: 'ALERT · Intervention',
+    wallet_placeholder: 'Wallet address 0x...',
+    connect: 'Connect',
+    test_profit: 'Test AI (Profit)',
+    test_loss: 'Test AI (Loss)',
+    meditation: 'Stay Mindful in Trading',
+    automatic: 'Auto-connect to get real-trade AI meditation',
+    ai_badge: '✦ AI Insight'
+  }
+};
+
+function updateUIStrings() {
+  const t = i18n[currentLang];
+  document.getElementById('lang-toggle').textContent = currentLang === 'cn' ? 'EN' : '中文';
+  
+  // State Labels
+  const STATE_LABELS = { 
+    IDLE: t.idle, 
+    MONITORING: t.monitoring, 
+    INTERVENTION: t.alert 
+  };
+  document.getElementById('state-label').textContent = STATE_LABELS[orbState] || orbState;
+
+  // Waiting Panel Labels
+  const waitingPanel = document.getElementById('waiting-panel');
+  if (waitingPanel) {
+    waitingPanel.querySelector('span:nth-child(1)').textContent = t.meditation;
+    waitingPanel.querySelector('span:nth-child(2)').textContent = t.automatic;
+    const demoButtons = waitingPanel.querySelectorAll('.demo-pill');
+    demoButtons[0].textContent = t.test_profit;
+    demoButtons[1].textContent = t.test_loss;
+  }
+  
+  // Wallet Section
+  document.getElementById('wallet-input').placeholder = t.wallet_placeholder;
+  document.getElementById('connect-btn').textContent = t.connect;
+}
+
+function toggleLang() {
+  currentLang = currentLang === 'cn' ? 'en' : 'cn';
+  localStorage.setItem('echo_lang', currentLang);
+  updateUIStrings();
+  if (currentWallet) loadPnl(currentWallet);
+}
+
+function setState(s) {
+  orbState = s;
+  updateUIStrings();
+}
+function setLevel(level, mode) {
+  [1,2,3].forEach(i => {
+    const d = document.getElementById('d'+i);
+    d.className = 'dot'+(i<=level?' on':'')+(i<=level&&mode==='INTERVENTION'?' red':'');
+  });
+}
+
+// ─── App State ─────────────────────────────────────────────────────────────────
+let currentWallet = null;
+let currentMode = null;
+let currentLevel = null;
+let currentPnl = 0;
+let pollTimer = null;
+let isPaid = false;
+let currentLang = localStorage.getItem('echo_lang') || 'en';
+updateUIStrings();
+
+// ─── Data Loading ──────────────────────────────────────────────────────────────
+async function loadPnl(wallet) {
+  showLoading(true);
+  try {
+    const res = await fetch(`/api/pnl?address=${encodeURIComponent(wallet)}&lang=${currentLang}`);
+    const d = await res.json();
+    if (d.error) { setWalletStatus('⚠ '+d.error, true); setState('IDLE'); return; }
+    currentMode = d.mode; currentLevel = d.level; currentPnl = d.total_pnl_usd||0;
+    setState(d.orb_state||'MONITORING');
+    setLevel(d.level, d.mode);
+    renderCard(d);
+    const badge = d.personalized ? i18n[currentLang].ai_badge : '';
+    setWalletStatus(currentLang === 'cn' ? `✓ 已连接 · 监控中 (每60s刷新) ${badge}` : `✓ Connected · Monitoring (60s refresh) ${badge}`, false);
+  } catch(e) { setWalletStatus(currentLang === 'cn' ? '⚠ 网络错误' : '⚠ Network Error', true); setState('IDLE'); }
+  finally { showLoading(false); }
+}
+
+async function loadDemo(scenario) {
+  showLoading(true);
+  currentWallet = null;
+  const t = i18n[currentLang];
+  setWalletStatus(currentLang === 'cn' ? '测试 AI 生成中...' : 'Generating Test AI...', false);
+  try {
+    const res = await fetch(`/api/demo?scenario=${scenario}&lang=${currentLang}`);
+    const d = await res.json();
+    currentMode = d.mode; currentLevel = d.level; currentPnl = d.total_pnl_usd||0;
+    setState(d.orb_state||'MONITORING');
+    setLevel(d.level, d.mode);
+    renderCard(d);
+    const badge = d.personalized ? t.ai_badge : '';
+    setWalletStatus(currentLang === 'cn' ? `✓ 测试数据已加载 ${badge}` : `✓ Test Data Loaded ${badge}`, false);
+  } catch(e) { console.error(e); }
+  finally { showLoading(false); }
+}
+
+// ─── Card Renderer ─────────────────────────────────────────────────────────────
+function renderCard(d) {
+  document.getElementById('waiting-panel').style.display = 'none';
+  const card = document.getElementById('card');
+  card.style.display = 'flex';
+  const isZen = d.mode === 'ZEN';
+  const pnl = d.total_pnl_usd||0;
+  const pstr = pnl>=0 ? `+$${Math.abs(pnl).toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`;
+  const aiTag = d.personalized ? `<span style="font-size:9px;color:rgba(0,212,200,0.6);margin-left:auto;">✦ AI</span>` : '';
+  const wallet = currentWallet || '';
+  card.innerHTML = `
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div class="badge ${isZen?'zen':'int'}">${isZen?'ZEN L':'INT L'}${d.level}</div>${aiTag}
+    </div>
+    <div class="card-title">${d.title||''}</div>
+    <div class="card-body">${(d.text||'').replace(/\n/g,'<br>')}</div>
+    <div class="pnl-row">
+      <div class="stat">
+        <div class="stat-label">${currentLang==='cn'?'盈亏':'PnL'}</div>
+        <div class="stat-value ${pnl>=0?'pos':'neg'}">${pstr}</div>
+      </div>
+      <button id="refresh-btn" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--dim);font-size:9px;cursor:pointer;" title="${currentLang==='cn'?'重新生成洞见':'Refresh Insight'}">🔮 ${currentLang==='cn'?'刷新':'Refresh'}</button>
+    </div>
+    <div class="audio-panel" id="audio-panel">
+      <div id="audio-player-wrap" style="display: ${d.audio_b64 ? 'block' : 'none'};">
+        ${d.audio_b64 ? `<audio class="audio-player" controls autoplay src="data:audio/wav;base64,${d.audio_b64}" style="height:32px; width:100%;"></audio>` : ''}
+      </div>
+      <div id="audio-gen-wrap" style="display: ${d.audio_b64 ? 'none' : 'block'};">
+        ${isPaid
+          ? `<button class="unlock-btn" id="gen-audio-btn">🔊 ${currentLang==='cn'?'生成语音冥想':'Generate Voice Meditation'}</button>`
+          : `<button class="unlock-btn" id="unlock-btn">🔓 ${currentLang==='cn'?'解锁语音冥想':'Unlock Voice Meditation'} · 0.10 USDG</button>
+             <div class="pay-status" id="pay-status">${currentLang==='cn'?'通过 x402 单次付费解锁':'Pay once via x402 to unlock'}</div>
+             <div class="x402-detail" id="x402-detail"></div>`
+        }
+      </div>
+    </div>
+  `;
+  document.getElementById('refresh-btn').addEventListener('click', () => {
+    if (currentWallet) loadPnl(currentWallet);
+  });
+  if (!d.audio_b64) {
+    if (isPaid) {
+      document.getElementById('gen-audio-btn').addEventListener('click', () => genAudio(wallet));
+    } else {
+      document.getElementById('unlock-btn').addEventListener('click', unlockAudio);
+    }
+  }
+}
+
+// ─── x402 Payment Flow ─────────────────────────────────────────────────────────
+async function unlockAudio() {
+  const btn = document.getElementById('unlock-btn');
+  const statusEl = document.getElementById('pay-status');
+  const detailEl = document.getElementById('x402-detail');
+  if (!btn) return;
+
+  const wallet = currentWallet || document.getElementById('wallet-input').value.trim();
+  if (!wallet) {
+    statusEl.textContent = '⚠ 请先连接钱包地址';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ 发起支付...';
+  statusEl.textContent = '正在通过 onchainos x402-pay 签署支付...';
+
+  try {
+    const res = await fetch(`/api/pay?wallet=${encodeURIComponent(wallet)}`, { method: 'POST' });
+    const d = await res.json();
+
+    if (res.ok && d.paid) {
+      isPaid = true;
+      statusEl.textContent = '✅ 支付成功！正在生成语音冥想...';
+      btn.textContent = '✅ 已解锁';
+      // Auto-generate audio
+      await genAudio(wallet);
+    } else if (res.status === 402) {
+      // Show x402 details
+      statusEl.textContent = '需要支付以下费用：';
+      detailEl.style.display = 'block';
+      detailEl.textContent = `网络: X Layer (eip155:196)\n金额: 0.10 USDG\n收款方: ${d.detail||'demo address'}`;
+      btn.disabled = false;
+      btn.textContent = '🔓 确认支付 0.10 USDG';
+    } else {
+      statusEl.textContent = '⚠ ' + (d.error || '支付失败');
+      btn.disabled = false;
+      btn.textContent = '🔓 解锁语音冥想 · 0.10 USDG';
+    }
+  } catch(e) {
+    statusEl.textContent = '⚠ 网络错误，请重试';
+    btn.disabled = false;
+    btn.textContent = '🔓 解锁语音冥想 · 0.10 USDG';
+  }
+}
+
+// ─── Gemini TTS Audio ──────────────────────────────────────────────────────────
+async function genAudio(walletOverride) {
+  const wallet = walletOverride || currentWallet || 'demo';
+  const mode = currentMode || 'INTERVENTION';
+  const level = currentLevel || 1;
+
+  const btn = document.getElementById('gen-audio-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '🔊 生成中...'; }
+
+  try {
+    const res = await fetch(`/api/audio?mode=${mode}&level=${level}&wallet=${encodeURIComponent(wallet)}&lang=${currentLang}`);
+    if (res.status === 402) {
+      // Not paid yet — shouldn't happen here but handle gracefully
+      if (btn) { btn.disabled = false; btn.textContent = '🔊 生成语音冥想'; }
+      return;
+    }
+    if (!res.ok) {
+      const d = await res.json();
+      if (btn) { btn.textContent = '⚠ TTS 失败：检查 GEMINI_API_KEY'; btn.disabled = false; }
+      console.error('TTS error:', d);
+      return;
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const wrap = document.getElementById('audio-player-wrap');
+    if (wrap) {
+      wrap.innerHTML = `<audio class="audio-player" controls autoplay src="${url}"></audio>`;
+    }
+    if (btn) { btn.textContent = '🔊 重新生成'; btn.disabled = false; }
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = '🔊 生成语音冥想'; }
+  }
+}
+
+// ─── Wallet Connection ──────────────────────────────────────────────────────────
+document.getElementById('connect-btn').addEventListener('click', async () => {
+  const addr = document.getElementById('wallet-input').value.trim();
+  if (!addr) return;
+  currentWallet = addr;
+  if (pollTimer) clearInterval(pollTimer);
+  setWalletStatus('⏳ 查询中...', false);
+  setState('MONITORING');
+  await loadPnl(addr);
+  pollTimer = setInterval(() => loadPnl(addr), 60000);
+});
+document.getElementById('wallet-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('connect-btn').click();
+});
+
+// ─── Demo Pills ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.demo-pill').forEach(b => {
+  b.addEventListener('click', () => { isPaid = false; loadDemo(b.dataset.s); });
+});
+
+// ─── Window Controls (Electron IPC) ───────────────────────────────────────────
+const dragBar = document.getElementById('drag-bar');
+let dragging=false, lastX=0, lastY=0;
+dragBar.addEventListener('mousedown', e => { dragging=true; lastX=e.screenX; lastY=e.screenY; e.preventDefault(); });
+document.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const dx=e.screenX-lastX, dy=e.screenY-lastY;
+  lastX=e.screenX; lastY=e.screenY;
+  if (window.electronOrb) window.electronOrb.moveWindow(dx, dy);
+});
+document.addEventListener('mouseup', () => { dragging=false; });
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+function showLoading(v) { document.getElementById('loading-ring').style.display = v?'block':'none'; }
+function setWalletStatus(msg, isErr) {
+  const el = document.getElementById('wallet-status');
+  el.textContent = msg;
+  el.style.color = isErr ? 'var(--int)' : 'var(--dim)';
+}
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+setState('IDLE');
+</script>
+</body>
+</html>
