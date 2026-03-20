@@ -1,63 +1,79 @@
 # Echo: The Orb 🪐
 ### *Your Emotional Anchor in the Decentralized Market*
+### *您在去中心化市场中的情绪锚点*
 
+---
+
+[English](#english) | [中文](#chinese)
+
+---
+
+<a name="english"></a>
+## 🇺🇸 English Version
+
+### **Overview**
 **Echo** is a state-of-the-art trading companion for the **X Layer** ecosystem. It transforms dry on-chain data into a living, breathing visual orb and a philosophical voice, helping traders maintain mental equanimity amid market volatility.
 
----
+### **📽️ The Experience**
+The **Orb** is a desktop-native widget that reflects your "Trading Soul":
+*   **🟢 ZEN STATE**: When your portfolio is thriving, Echo pulses with calm, teal light. The Sage AI reminds you to stay humble.
+*   **🔴 INTERVENTION**: During significant losses, Echo shifts to deep crimson, interrupting "revenge trading" with Stoic wisdom and meditations.
 
-## 📽️ The Experience
+### **🧠 Core Intelligence**
+*   **🧬 Risk Agent (On-Chain Awareness)**: Powered by **OnchainOS CLI**, Echo performs real-time queries of your **DEX Realized PnL** directly from X Layer.
+*   **🧘 Sage Agent (AI Philosophical Guide)**: Powered by **Google Gemini**, analyzing your actual trade history to provide hyper-personalized insights.
 
-The **Orb** is a desktop-native widget that lives on your screen. It doesn't just show numbers; it reflects your "Trading Soul":
-
-*   **🟢 ZEN STATE**: When your portfolio is thriving, Echo pulses with calm, teal light. Its AI (The Sage) reminds you to stay humble and avoid the trap of greed.
-*   **🔴 INTERVENTION**: When the market turns and losses mount, Echo shifts to a deep crimson with sharp, jittery pulses. It proactively interrupts "revenge trading" with Stoic wisdom and calming meditations.
-
----
-
-## 🧠 Core Intelligence
-
-### 🧬 Risk Agent (On-Chain Awareness)
-Built on the **OnchainOS CLI**, Echo doesn't rely on delayed centralized price feeds. It performs real-time queries of your **DEX Realized PnL** directly from the X Layer blockchain, ensuring your "Soul State" is always based on ground truth.
-
-### 🧘 Sage Agent (AI Philosophical Guide)
-Powered by **Google Gemini**, the Sage analyzes your actual trade history to provide hyper-personalized insights. It's not just a bot; it's a mentor trained in Eastern philosophy and Western Stoicism.
-
----
-
-## ⚡ Quick Start for Judges
-
-Experience the Orb in seconds. No complex backend setup required for end-users.
-
-### 1. Requirements
-*   Node.js (v16+) & npm
-
-### 2. Launching the Desktop Client
-```bash
-git clone https://github.com/fuxue0503/echo.git
-cd echo/electron
-npm install
-npm start
-```
-*Note: The Orb will connect to our hosted backend automatically. Simply input an X Layer wallet address (e.g., `0x...`) to begin monitoring.*
+### **⚡ Quick Start for Judges**
+1. **Requirements**: Node.js (v16+) & npm.
+2. **Launch Client**:
+   ```bash
+   git clone https://github.com/fuxue0503/echo.git
+   cd echo/electron
+   npm install && npm start
+   ```
 
 ---
 
-## 💳 X Layer Integration Highlights
+<a name="chinese"></a>
+## 🇨🇳 中文版
 
-*   **Native Payments**: Unlock "Premium Voice Meditations" with a seamless **1.00 USDT** transfer on X Layer.
-*   **x402 Protocol**: The backend implements its own verification engine to confirm USDT transfers on-chain before unlocking features.
-*   **Developer Economy**: All payments go directly to the creator's wallet (`X402_PAY_TO`).
+### **项目简介**
+**Echo** 是为 **X Layer** 生态系统打造的顶尖交易伴侣。它将枯燥的链上数据转化为一个“有呼吸、有生命”的视觉灵动球（The Orb）和富有哲学深度的语音建议，帮助交易者在市场波动中保持内心的平静。
+
+### **📽️ 产品体验**
+**灵动球（The Orb）** 是一个常驻桌面的原生小部件，它不只是显示数字，更是您“交易灵魂”的映射：
+*   **🟢 禅定模式 (ZEN)**：当您的投资组合处于盈利时，Echo 闪烁着宁静的青绿色光芒。贤者 AI 会提醒您保持谦逊，避免掉入贪婪的陷阱。
+*   **🔴 干预模式 (INTERVENTION)**：当遭遇重大亏损时，Echo 会变为深红色并震颤，通过斯多葛学派的智慧和冥想指导，主动阻止“报复性交易”。
+
+### **🧠 核心智能**
+*   **🧬 风险代理 (链上感知)**：基于 **OnchainOS CLI** 构建，Echo 直接从 X Layer 区块链实时查询您的 **DEX 已实现盈亏 (PnL)**，确保感知完全基于事实。
+*   **🧘 贤者代理 (AI 哲学引导)**：由 **Google Gemini** 驱动，分析您的真实交易历史，提供高度个性化的洞见。它不仅是一个机器人，更是一位精通东西方哲学的心灵导师。
+
+### **⚡ 评委快速启动**
+无需复杂的后端设置，仅需运行桌面客户端即可体验：
+1. **环境要求**：Node.js (v16+) 与 npm。
+2. **启动客户端**：
+   ```bash
+   git clone https://github.com/fuxue0503/echo.git
+   cd echo/electron
+   npm install && npm start
+   ```
+*注意：桌面端将自动连接到我们的云端服务器。只需输入 X Layer 钱包地址即可开始监控。*
 
 ---
 
-## 🛠️ Architecture (For Developers)
+## 💳 X Layer 集成亮点 (Integration)
 
-If you wish to host your own instance of the Echo ecosystem:
+*   **原生支付 (Native Payments)**：通过 X Layer 网络支付 **1.00 USDT** 即可解锁“流媒体语音冥想”。
+*   **x402 协议**: 后端实现独立的链上校验引擎，在确认 USDT 转账后自动解锁高级功能。
+*   **开发者经济**: 所有收益直接进入创作者地址 (`X402_PAY_TO`)。
 
-1.  **Backend**: `Python 3.10+` + `FastAPI`.
-2.  **Data**: Install `onchainos` CLI and configure OKX API keys.
-3.  **Secrets**: Set up `.env` with `GEMINI_API_KEY` and `X402_PAY_TO`.
-4.  **Run**: `./launch.sh`
+---
+
+## 🛠️ 技术架构 (Architecture)
+*   **Backend**: Python 3.10+ / FastAPI / Web3.py
+*   **Market Data**: [OnchainOS](https://onchainos.com) CLI
+*   **AI Model**: Google Gemini 1.5 Flash & Pro
 
 ---
 
