@@ -2,7 +2,6 @@
 
 **Echo Sentinel** is a decentralized trading soul companion designed for the **X Layer** ecosystem. It combines real-time on-chain portfolio monitoring with AI-driven philosophical guidance to help traders navigate the emotional volatility of the crypto markets.
 
-![The Orb](static/widget.html "Visualizing your trading soul")
 
 ## 🚀 Overview
 
