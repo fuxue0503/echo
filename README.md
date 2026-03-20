@@ -1,69 +1,65 @@
-# Echo Sentinel: The Orb 🪐
+# Echo: The Orb 🪐
+### *Your Emotional Anchor in the Decentralized Market*
 
-**Echo Sentinel** is a decentralized trading soul companion designed for the **X Layer** ecosystem. It combines real-time on-chain portfolio monitoring with AI-driven philosophical guidance to help traders navigate the emotional volatility of the crypto markets.
-
-
-## 🚀 Overview
-
-The project features a **Desktop Widget (The Orb)** that floats on your screen, pulsing with different colors and intensities based on your current portfolio's health. All complex logic, AI generation, and payment verification are handled securely on our cloud backend.
-
-- **ZEN Mode (Green/Teal)**: Triggered when you are in profit. AI provides reminders of impermanence and the process over luck.
-- **INTERVENTION Mode (Red)**: Triggered during significant losses. AI acts as a Stoic companion, providing comfort and emotional stabilization.
-
-## 🧑‍💻 For Judges & End Users (Quick Start)
-
-To experience the Orb, you only need to run the lightweight desktop client. The backend server (which holds the AI models and verifies X Layer payments) is hosted remotely.
-
-### Prerequisites
-- Node.js & npm installed
-
-### Launch the Desktop App
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/fuxue0503/echo.git
-   cd echo/electron
-   ```
-2. Install dependencies & Run:
-   ```bash
-   npm install
-   npm start
-   ```
-*The Orb will appear on your desktop. Enter your X Layer wallet address to begin.*
+**Echo** is a state-of-the-art trading companion for the **X Layer** ecosystem. It transforms dry on-chain data into a living, breathing visual orb and a philosophical voice, helping traders maintain mental equanimity amid market volatility.
 
 ---
 
-## 🔒 Security & Payment Flow
+## 📽️ The Experience
 
-- **Secure API**: The Gemini API keys are safely stored on the centralized backend. The desktop client only communicates via secure endpoints.
-- **Creator Economy**: Unlocking the AI Voice Meditation requires a `1.00 USDT` payment on the **X Layer Mainnet**. 
-- **Direct to Creator**: Payments are routed directly to the creator's wallet (`X402_PAY_TO`). The backend independently verifies the transaction hash on-chain (preventing double-spending) before granting the user access to the premium audio stream.
+The **Orb** is a desktop-native widget that lives on your screen. It doesn't just show numbers; it reflects your "Trading Soul":
+
+*   **🟢 ZEN STATE**: When your portfolio is thriving, Echo pulses with calm, teal light. Its AI (The Sage) reminds you to stay humble and avoid the trap of greed.
+*   **🔴 INTERVENTION**: When the market turns and losses mount, Echo shifts to a deep crimson with sharp, jittery pulses. It proactively interrupts "revenge trading" with Stoic wisdom and calming meditations.
 
 ---
 
-## 🛠 For Developers (Backend Setup)
+## 🧠 Core Intelligence
 
-If you wish to host the backend server yourself (e.g., to run your own local instance or contribute to the core Logic), follow these steps:
+### 🧬 Risk Agent (On-Chain Awareness)
+Built on the **OnchainOS CLI**, Echo doesn't rely on delayed centralized price feeds. It performs real-time queries of your **DEX Realized PnL** directly from the X Layer blockchain, ensuring your "Soul State" is always based on ground truth.
 
-### Prerequisites
-- Python 3.9+
-- [OnchainOS CLI](https://onchainos.com) installed and configured.
+### 🧘 Sage Agent (AI Philosophical Guide)
+Powered by **Google Gemini**, the Sage analyzes your actual trade history to provide hyper-personalized insights. It's not just a bot; it's a mentor trained in Eastern philosophy and Western Stoicism.
 
-### Setup
-1. Create a `.env` file in the root:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key
-   X402_PAY_TO=your_wallet_address_to_receive_payments
-   ```
-2. Install and run:
-   ```bash
-   pip install -r requirements.txt
-   ./launch.sh
-   ```
-3. To expose it to the internet for the desktop app, use **ngrok**:
-   ```bash
-   ngrok http 8888
-   ```
-4. Then, update the `SERVER_URL` in `electron/main.js` to your new ngrok link.
+---
+
+## ⚡ Quick Start for Judges
+
+Experience the Orb in seconds. No complex backend setup required for end-users.
+
+### 1. Requirements
+*   Node.js (v16+) & npm
+
+### 2. Launching the Desktop Client
+```bash
+git clone https://github.com/fuxue0503/echo.git
+cd echo/electron
+npm install
+npm start
+```
+*Note: The Orb will connect to our hosted backend automatically. Simply input an X Layer wallet address (e.g., `0x...`) to begin monitoring.*
+
+---
+
+## 💳 X Layer Integration Highlights
+
+*   **Native Payments**: Unlock "Premium Voice Meditations" with a seamless **1.00 USDT** transfer on X Layer.
+*   **x402 Protocol**: The backend implements its own verification engine to confirm USDT transfers on-chain before unlocking features.
+*   **Developer Economy**: All payments go directly to the creator's wallet (`X402_PAY_TO`).
+
+---
+
+## 🛠️ Architecture (For Developers)
+
+If you wish to host your own instance of the Echo ecosystem:
+
+1.  **Backend**: `Python 3.10+` + `FastAPI`.
+2.  **Data**: Install `onchainos` CLI and configure OKX API keys.
+3.  **Secrets**: Set up `.env` with `GEMINI_API_KEY` and `X402_PAY_TO`.
+4.  **Run**: `./launch.sh`
+
+---
 
 ## 📜 License
-MIT License. Created for the X Layer Hackathon.
+MIT License. Developed for the **X Layer Hackathon**.
