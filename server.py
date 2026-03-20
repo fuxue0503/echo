@@ -11,7 +11,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from agents.risk_agent import assess
+from agents.risk_agent import (
+    assess, setup_user, load_users, save_users, 
+    verify_usdt_transfer, is_tx_processed, log_payment
+)
 from agents.sage_agent import deliver, get_recent_trades
 
 app = FastAPI(title="Echo Sentinel API", version="1.0.0")
@@ -35,9 +38,19 @@ def get_pnl(
     personalized philosophical insight from real trade history.
     Returns everything the widget needs in one call.
     """
+    address = address.lower()
+    # Init user in store if not exists
+    user_data = setup_user(address)
+    
+    # Check if user has active sub or credits
+    # For demo transition purpose, if paid=True is passed manually we simulate they are paid via front-end override,
+    # otherwise we check DB.
+    has_credit = user_data.get("credits", 0) > 0
+    is_actively_paid = paid or user_data.get("subscription_active") or has_credit
+    
     pnl = assess(address, chain)
-    if "error" in pnl:
-        return JSONResponse(content=pnl)
+    if not pnl or "error" in pnl:
+        return JSONResponse(content=pnl or {"error": "Failed to fetch PnL"})
 
     # Fetch recent trades for personalized insight
     trades = get_recent_trades(address, chain)
@@ -47,12 +60,34 @@ def get_pnl(
         mode=pnl["mode"],
         level=pnl["level"],
         pnl_usd=pnl["total_pnl_usd"],
-        is_paid=paid,
+        is_paid=is_actively_paid,
         trades=trades,
         lang=lang,
     )
+    
+    # Decrement credit if they used one
+    if is_actively_paid and not user_data.get("subscription_active") and has_credit:
+        users = load_users()
+        users[address]["credits"] -= 1
+        save_users(users)
+        
     return JSONResponse(content={**pnl, **insight})
 
+# ── User Status & Persistence ──────────────────────────────────────────────────
+@app.post("/api/watch")
+def watch_wallet(wallet: str = Query(...)):
+    """Save the wallet to the watch list (users.json)."""
+    wallet = wallet.lower()
+    user_data = setup_user(wallet)
+    return JSONResponse(content={"status": "watching", "wallet": wallet, "user": user_data})
+
+@app.get("/api/user/status")
+def user_status(wallet: str = Query(...)):
+    """Return user subscription and credit info."""
+    wallet = wallet.lower()
+    users = load_users()
+    user = users.get(wallet, setup_user(wallet))
+    return JSONResponse(content=user)
 
 # ── Generate Meditation Content (standalone, for re-generation) ───────────────
 @app.post("/api/meditate")
@@ -65,96 +100,72 @@ def meditate(
     lang:    str   = Query("cn"),
 ):
     """Re-generate philosophical content on demand (widget 'Refresh' button)."""
+    wallet = wallet.lower()
     trades = get_recent_trades(wallet) if wallet else []
     content = deliver(mode=mode, level=level, pnl_usd=pnl_usd, is_paid=paid, trades=trades, lang=lang)
     return JSONResponse(content=content)
 
 
-@app.get("/api/demo")
-def demo(scenario: str = Query("profit_high", description="profit_low|profit_high|loss_low|loss_high"), lang: str = "cn"):
-    """Returns mock assessment data for demo without a real wallet address."""
-    scenarios = {
-        "profit_low":  {"mode": "ZEN",          "level": 1, "total_pnl_usd": 45.00,   "orb_state": "MONITORING"},
-        "profit_high": {"mode": "ZEN",          "level": 3, "total_pnl_usd": 820.00,  "orb_state": "MONITORING"},
-        "loss_low":    {"mode": "INTERVENTION", "level": 1, "total_pnl_usd": -38.00,  "orb_state": "INTERVENTION"},
-        "loss_high":   {"mode": "INTERVENTION", "level": 3, "total_pnl_usd": -490.00, "orb_state": "INTERVENTION"},
-    }
-    data = scenarios.get(scenario, scenarios["profit_high"])
-
-    # Provide realistic mock trades based on scenario for Gemini to use
-    if data["mode"] == "ZEN":
-        mock_trades = [
-            {"tokenSymbol": "WETH", "realizedPnlUsd": "850.00", "unrealizedPnlUsd": "400.00"},
-            {"tokenSymbol": "OKB", "realizedPnlUsd": "0", "unrealizedPnlUsd": "50.00"},
-            {"tokenSymbol": "MEME", "realizedPnlUsd": "-80.00", "unrealizedPnlUsd": "0"},
-        ]
-    else:
-        mock_trades = [
-            {"tokenSymbol": "DOGE", "realizedPnlUsd": "-500.00", "unrealizedPnlUsd": "-350.00"},
-            {"tokenSymbol": "SHIB", "realizedPnlUsd": "0", "unrealizedPnlUsd": "-120.00"},
-        ]
-
-    # Auto-generate content (demo simulates a paid session to test TTS audio)
-    content = deliver(
-        mode=data["mode"],
-        level=data["level"],
-        pnl_usd=data["total_pnl_usd"],
-        is_paid=True,  # Simulate paid unlock so user can hear the AI voice
-        trades=mock_trades,
-        lang=lang
-    )
-    return JSONResponse(content={**data, **content})
-
 
 # ── x402 Payment Sessions (in-memory for demo) ────────────────────────────────
 import subprocess, json, uuid, base64
-from google import genai
-from google.genai import types as genai_types
 
-paid_sessions: dict[str, bool] = {}   # wallet_address -> True if paid
+X402_ASSET    = os.getenv("X402_ASSET",    "0x1e4a5963abfd975d8c9021ce480b42188849d41d")  # USDT on X Layer
+X402_PAY_TO   = os.getenv("X402_PAY_TO",   "0x0000000000000000000000000000000000000001")  # real recipient
 
-# x402 constants (change to real contract/address for production)
-X402_NETWORK  = "eip155:196"          # X Layer mainnet
-X402_ASSET    = os.getenv("X402_ASSET",    "0x4ae46a509f6b1d9056937ba4500cb143933d2dc8")  # USDG on X Layer
-X402_PAY_TO   = os.getenv("X402_PAY_TO",  "0x0000000000000000000000000000000000000001")  # demo recipient
-X402_AMOUNT   = os.getenv("X402_AMOUNT",  "100000")   # 0.10 USDG (6 decimals)
+@app.get("/api/config")
+def get_config():
+    """Returns public X Layer config for the frontend."""
+    return {
+        "xLayerChainId": 196,
+        "usdtAddress":   X402_ASSET,
+        "treasury":      X402_PAY_TO
+    }
 
+@app.post("/api/pay/subscribe")
+def pay_subscribe(wallet: str = Query(...), txHash: str = Query(...)):
+    """Handle 10 USDT subscription."""
+    import time
+    wallet = wallet.lower()
+    # 1. Prevent Double Spending
+    if is_tx_processed(txHash):
+        return JSONResponse(status_code=400, content={"error": "Transaction already processed"})
 
-@app.post("/api/pay")
-def pay_x402(wallet: str = Query(..., description="User wallet address")):
-    """
-    Initiate x402 payment to unlock audio meditation.
-    Calls onchainos CLI to sign an EIP-3009 transferWithAuthorization.
-    Returns payment proof or error.
-    """
-    try:
-        result = subprocess.run(
-            [
-                "onchainos", "payment", "x402-pay",
-                "--network",             X402_NETWORK,
-                "--amount",              X402_AMOUNT,
-                "--pay-to",              X402_PAY_TO,
-                "--asset",               X402_ASSET,
-                "--from",                wallet,
-                "--max-timeout-seconds", "300",
-            ],
-            capture_output=True, text=True, timeout=60,
-            env={**os.environ}
-        )
-        if result.returncode != 0:
-            return JSONResponse(
-                status_code=402,
-                content={"error": "Payment failed", "detail": result.stderr.strip()}
-            )
-        # Mark wallet as paid
-        paid_sessions[wallet.lower()] = True
-        proof = json.loads(result.stdout) if result.stdout.strip().startswith("{") else {"raw": result.stdout}
-        return JSONResponse(content={"paid": True, "proof": proof})
-    except subprocess.TimeoutExpired:
-        return JSONResponse(status_code=408, content={"error": "onchainos timed out"})
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+    # 2. Verify On-Chain
+    if not verify_usdt_transfer(txHash, wallet, X402_PAY_TO, 10.0):
+        return JSONResponse(status_code=400, content={"error": "Invalid or unconfirmed transaction"})
 
+    # 3. Log Payment & Update Credits
+    log_payment(txHash, wallet, 10.0, "subscription")
+    users = load_users()
+    user = users.get(wallet, setup_user(wallet))
+    user["subscription_active"] = True
+    user["subscription_expires"] = int(time.time() + 30 * 86400) # 30 days
+    user["credits"] += 100
+    users[wallet] = user
+    save_users(users)
+    return JSONResponse(content={"status": "success", "user": user})
+
+@app.post("/api/pay/once")
+def pay_once(wallet: str = Query(...), txHash: str = Query(...)):
+    """Handle 1 USDT single experience."""
+    wallet = wallet.lower()
+    # 1. Prevent Double Spending
+    if is_tx_processed(txHash):
+        return JSONResponse(status_code=400, content={"error": "Transaction already processed"})
+
+    # 2. Verify On-Chain
+    if not verify_usdt_transfer(txHash, wallet, X402_PAY_TO, 1.0):
+        return JSONResponse(status_code=400, content={"error": "Invalid or unconfirmed transaction"})
+
+    # 3. Log Payment & Update Credits
+    log_payment(txHash, wallet, 1.0, "once")
+    users = load_users()
+    user = users.get(wallet, setup_user(wallet))
+    user["credits"] += 1
+    users[wallet] = user
+    save_users(users)
+    return JSONResponse(content={"status": "success", "user": user})
 
 @app.get("/api/audio")
 def get_audio(
@@ -166,28 +177,25 @@ def get_audio(
     Generate Gemini TTS audio for paid users.
     Returns 402 if not paid, audio/wav bytes if paid.
     """
-    from agents.sage_agent import CONTENT, generate_audio
+    from agents.sage_agent import generate_audio
+    
+    wallet = wallet.lower()
 
-    # Check payment — 'demo' wallet always considered paid
-    is_paid = (wallet == "demo") or paid_sessions.get(wallet.lower(), False)
+    # Check payment
+    is_paid = False
+    users = load_users()
+    user = users.get(wallet, {})
+    is_paid = user.get("subscription_active") or user.get("credits", 0) > 0
+
     if not is_paid:
-        # Return x402 response so client knows what to pay
-        payload = {
-            "x402Version": 2,
-            "accepts": [{
-                "network": X402_NETWORK,
-                "amount": X402_AMOUNT,
-                "payTo": X402_PAY_TO,
-                "asset": X402_ASSET,
-                "maxTimeoutSeconds": 300,
-            }]
-        }
+        # Return simplified payload
+        payload = {"error": "Payment required", "tiers": ["subscribe", "once"]}
         encoded = base64.b64encode(json.dumps(payload).encode()).decode()
         return Response(content=encoded, status_code=402, media_type="text/plain")
 
     audio_bytes = generate_audio(mode, level)
     if audio_bytes is None:
-        return JSONResponse(status_code=503, content={"error": "TTS generation failed. Check GEMINI_API_KEY."})
+        return JSONResponse(status_code=503, content={"error": "TTS generation failed."})
     return Response(content=audio_bytes, media_type="audio/wav")
 
 

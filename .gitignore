@@ -2,3 +2,10 @@
 node_modules
 dist
 .DS_Store
+__pycache__/
+*.log
+users.json
+payments.json
+venv/
+.idea/
+.vscode/

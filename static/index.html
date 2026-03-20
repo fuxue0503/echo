@@ -1,70 +1,290 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Echo Sentinel — The Orb</title>
-  <meta name="description" content="在波动中寻找不动心。一个交易员的精神守望者，实时监控链上行为与心理状态。">
-  <link rel="stylesheet" href="style.css">
+  <title>Echo Sentinel - Trading Soul Companion</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    body { background: #0a0a0c; color: #fff; font-family: 'Inter', sans-serif; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow-x: hidden; }
+    .nav { position: absolute; top: 0; left: 0; right: 0; padding: 20px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 10; }
+    .logo { font-size: 22px; font-weight: 800; letter-spacing: 2px; color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3); display: flex; align-items: center; gap: 10px;}
+    .logo-orb { width: 12px; height: 12px; background: #00d4c8; border-radius: 50%; box-shadow: 0 0 10px #00d4c8; }
+    .connect-btn { background: rgba(255,255,255,0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+    .connect-btn:hover { background: rgba(0,212,200,0.1); border-color: #00d4c8; }
+    .main { display: flex; flex-direction: column; align-items: center; max-width: 1000px; width: 100%; z-index: 1; }
+    .title { font-size: 52px; font-weight: 800; margin-bottom: 15px; letter-spacing: 2px; text-align: center; }
+    .subtitle { font-size: 18px; color: #8e94a0; margin-bottom: 60px; text-align: center; max-width: 600px; line-height: 1.5; }
+    
+    .pricing { display: flex; gap: 40px; justify-content: center; width: 100%; flex-wrap: wrap; }
+    .card { background: rgba(20,22,28,0.6); border: 1px solid rgba(255,255,255,0.05); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 20px; padding: 40px 30px; width: 320px; text-align: center; transition: transform 0.4s, border-color 0.4s; box-shadow: 0 15px 35px rgba(0,0,0,0.4); position: relative; overflow: hidden; }
+    .card:hover { transform: translateY(-10px); border-color: rgba(0,212,200,0.4); }
+    .card::before { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(0,212,200,0.08) 0%, transparent 60%); opacity: 0; transition: opacity 0.5s; pointer-events: none; }
+    .card:hover::before { opacity: 1; }
+    
+    .card-icon { font-size: 40px; margin-bottom: 20px; }
+    .card-title { font-size: 22px; font-weight: 800; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 1px;}
+    .card-price { font-size: 32px; color: #00d4c8; font-weight: bold; margin-bottom: 5px; display: flex; align-items: baseline; justify-content: center; gap: 5px;}
+    .card-price span { font-size: 14px; color: #8e94a0; font-weight: normal; }
+    
+    .card-features { list-style: None; padding: 0; margin: 30px 0; color: #aeb5c0; font-size: 14px; text-align: left; }
+    .card-features li { margin-bottom: 12px; padding-left: 24px; position: relative; }
+    .card-features li::before { content: '✓'; color: #00d4c8; position: absolute; left: 0; font-weight: bold;}
+    
+    .pay-btn { background: linear-gradient(90deg, #00d4c8, #00b3a8); border: none; color: #000; padding: 14px 0; width: 100%; border-radius: 8px; font-size: 16px; font-weight: 800; cursor: pointer; transition: transform 0.2s, opacity 0.3s; }
+    .pay-btn:hover { opacity: 0.9; transform: scale(1.02); }
+    .pay-btn:disabled { background: #333; color: #666; cursor: not-allowed; transform: none; }
+
+    /* Central Orb Background */
+    .orb-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 0; opacity: 0.4; pointer-events: none; }
+    .orb { width: 500px; height: 500px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,200,0.4) 0%, rgba(20,50,200,0.1) 40%, transparent 70%); filter: blur(30px); animation: pulse 8s infinite alternate; }
+    @keyframes pulse { 0% { transform: scale(0.9); opacity: 0.5; } 100% { transform: scale(1.1); opacity: 0.8; } }
+    
+    .status-panel { margin-top: 50px; padding: 20px 40px; background: rgba(0,212,200,0.05); border: 1px solid rgba(0,212,200,0.2); border-radius: 12px; text-align: center; display: none; max-width: 600px; backdrop-filter: blur(10px); }
+    .status-panel.active { display: block; animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    .status-grid { display: flex; gap: 40px; margin-top: 15px; justify-content: center;}
+    .status-item { display: flex; flex-direction: column; align-items: center; }
+    .status-item-val { font-size: 24px; font-weight: bold; color: #00d4c8; }
+    .status-item-lbl { font-size: 12px; color: #8e94a0; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px;}
+
+    #toast { visibility: hidden; min-width: 250px; background-color: rgba(20,22,28,0.95); border: 1px solid rgba(255,255,255,0.1); color: #fff; text-align: center; border-radius: 8px; padding: 16px; position: fixed; z-index: 100; left: 50%; bottom: 40px; transform: translateX(-50%); box-shadow: 0 10px 30px rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
+    #toast.show { visibility: visible; animation: fadein 0.3s, fadeout 0.3s 3.7s; }
+    @keyframes fadein { from { bottom: 0; opacity: 0; } to { bottom: 40px; opacity: 1; } }
+    @keyframes fadeout { from { bottom: 40px; opacity: 1; } to { bottom: 0; opacity: 0; } }
+  </style>
 </head>
 <body>
 
-  <!-- ── Header ── -->
-  <header>
-    <div class="logo">◯ Echo Sentinel</div>
-    <div class="tagline">在波动中寻找不动心</div>
-  </header>
-
-  <!-- ── Wallet Bar ── -->
-  <div class="wallet-bar">
-    <input
-      id="wallet-input"
-      type="text"
-      placeholder="输入 X Layer 钱包地址 0x..."
-      autocomplete="off"
-      spellcheck="false"
-    >
-    <button id="connect-btn">监控</button>
+  <div class="orb-container">
+    <div class="orb"></div>
   </div>
 
-  <!-- ── Demo Buttons ── -->
-  <div class="demo-bar">
-    <span style="font-size:11px;color:var(--text-dim);line-height:26px;">演示场景：</span>
-    <button class="demo-btn" data-scenario="profit_low">小盈 L1</button>
-    <button class="demo-btn" data-scenario="profit_high">大盈 L3</button>
-    <button class="demo-btn" data-scenario="loss_low">小亏 L1</button>
-    <button class="demo-btn" data-scenario="loss_high">大亏 L3</button>
+  <div class="nav">
+    <div class="logo">
+      <div class="logo-orb"></div>
+      ECHO SENTINEL
+    </div>
+    <button class="connect-btn" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
   </div>
 
-  <!-- ── Main ── -->
-  <main class="main">
+  <div class="main">
+    <div class="title">Trading Soul Companion</div>
+    <div class="subtitle">Elevate your trading psychology with AI-driven, real-time portfolio analysis and personalized meditation specifically tuned to your market outcomes.</div>
 
-    <!-- The Orb -->
-    <div class="orb-section">
-      <div class="sanity-tooltip" id="sanity-score">理智分 — / 100</div>
-      <canvas id="orb-canvas" title="右键单击进入禅定复盘"></canvas>
-      <div class="loading-dots" id="loading-dots">
-        <span></span><span></span><span></span>
+    <div class="pricing">
+      <!-- One-Time Card -->
+      <div class="card">
+        <div class="card-icon">🧘</div>
+        <div class="card-title">One-Time Echo</div>
+        <div class="card-price">1.00 <span>USDT / use</span></div>
+        <ul class="card-features">
+          <li>Single Meditation Session</li>
+          <li>Instant Access</li>
+          <li>Basic Echo Sentinel Guidance</li>
+          <li>Generic Empathy Module</li>
+        </ul>
+        <button class="pay-btn" onclick="payTier('once', 1.0)">Buy Single Echo</button>
       </div>
-      <div class="orb-label" id="orb-label">IDLE · 待机</div>
+
+      <!-- Subscription Card -->
+      <div class="card" style="border-color: rgba(0,212,200,0.3); transform: scale(1.05);">
+        <div class="card-icon">✨</div>
+        <div class="card-title">Zen Subscription</div>
+        <div class="card-price">10.00 <span>USDT / mo</span></div>
+        <ul class="card-features">
+          <li>100 Personalized Meditations</li>
+          <li>Live Portfolio Deep Analysis</li>
+          <li>Priority Intervention Logic</li>
+          <li>Persistent Desktop Tracking</li>
+        </ul>
+        <button class="pay-btn" onclick="payTier('subscribe', 10.0)">Subscribe Now</button>
+      </div>
     </div>
 
-    <!-- Info Card (populated by JS) -->
-    <div id="info-card" class="info-card" style="display:none;"></div>
-
-  </main>
-
-  <!-- ── Zen Review Overlay ── -->
-  <div class="zen-overlay" id="zen-overlay">
-    <div class="zen-quote" id="zen-quote"></div>
-    <div class="zen-close" id="zen-close">· 点击关闭 · 回到市场 ·</div>
+    <!-- Status Panel (Hidden until connected) -->
+    <div class="status-panel" id="statusPanel">
+      <div>Wallet Linked: <span id="walletAddress" style="color:#00d4c8; font-family:monospace;">---</span></div>
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-item-val" id="creditCount">0</div>
+          <div class="status-item-lbl">Credits Left</div>
+        </div>
+        <div class="status-item">
+          <div class="status-item-val" id="subStatus">Inactive</div>
+          <div class="status-item-lbl">Subscription</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- ── Footer ── -->
-  <footer>
-    Echo Sentinel v2.0 · X Layer (Chain 196) · 右键 The Orb 进入禅定复盘
-  </footer>
+  <div id="toast"></div>
 
-  <script src="orb.js"></script>
+  <script>
+    let userAddress = null;
+    let provider = null;
+    let signer = null;
+
+    // X Layer Mainnet Info (Fetched from /api/config)
+    let XLAYER_CHAIN_ID = 196;
+    let USDT_ADDRESS = "0x1e4a5963abfd975d8c9021ce480b42188849d41d";
+    let TREASURY = "0x000000000000000000000000000000000001"; 
+
+    async function fetchConfig() {
+      try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
+        XLAYER_CHAIN_ID = config.xLayerChainId;
+        USDT_ADDRESS = config.usdtAddress;
+        TREASURY = config.treasury;
+      } catch (err) {
+        console.error("Config fetch failed, using defaults.");
+      }
+    }
+    fetchConfig();
+    
+    // Minimal standard ERC20 ABI
+    const ERC20_ABI = ["function transfer(address to, uint amount) returns (bool)", "function decimals() view returns (uint8)"];
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.className = "show";
+      setTimeout(() => { toast.className = toast.className.replace("show", ""); }, 4000);
+    }
+
+    async function connectWallet() {
+      // If already connected, act as a disconnect button
+      if (userAddress) {
+        userAddress = null;
+        provider = null;
+        signer = null;
+        document.getElementById("connectBtn").innerText = "Connect Wallet";
+        document.getElementById("statusPanel").classList.remove("active");
+        showToast("Wallet Disconnected");
+        return;
+      }
+
+      // Check for OKX Wallet first, then fallback to general ethereum
+      const injectedProvider = window.okxwallet || window.ethereum;
+      
+      if (!injectedProvider) {
+        showToast("Please install OKX Wallet extension.");
+        return;
+      }
+
+      try {
+        // 1. Force network switch to X Layer FIRST
+        try {
+          await injectedProvider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0xc4' }], // 196 in hex
+          });
+        } catch (switchError) {
+          if (switchError.code === 4902 || switchError.code === -32603) {
+            try {
+              await injectedProvider.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0xc4',
+                  chainName: 'X Layer Mainnet',
+                  rpcUrls: ['https://rpc.xlayer.tech'],
+                  nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+                  blockExplorerUrls: ['https://www.oklink.com/xlayer']
+                }],
+              });
+            } catch (addError) {
+              showToast("Failed to add X Layer to your wallet.");
+              return;
+            }
+          }
+        }
+
+        // 2. Now request accounts (wallet will be on X Layer)
+        await injectedProvider.request({ method: 'eth_requestAccounts' });
+        provider = new ethers.providers.Web3Provider(injectedProvider);
+        signer = provider.getSigner();
+
+        const { chainId } = await provider.getNetwork();
+        if (chainId !== XLAYER_CHAIN_ID) {
+           showToast("Please switch to X Layer Mainnet in your wallet manually.");
+           return;
+        }
+        userAddress = await signer.getAddress();
+        
+        document.getElementById("connectBtn").innerText = "Disconnect " + userAddress.substring(0, 6) + "..." + userAddress.substring(38);
+        document.getElementById("walletAddress").innerText = userAddress;
+        
+        // Notify backend to watch this wallet
+        await fetch(`/api/watch?wallet=${userAddress}`, { method: "POST" });
+        showToast("Wallet Connected & Synced");
+
+        // Fetch User Status
+        updateUserStatus();
+
+      } catch (err) {
+        console.error(err);
+        showToast("Wallet connection failed.");
+      }
+    }
+
+    async function updateUserStatus() {
+      if (!userAddress) return;
+      try {
+        const res = await fetch(`/api/user/status?wallet=${userAddress}`);
+        const data = await res.json();
+        
+        document.getElementById("creditCount").innerText = data.credits || 0;
+        document.getElementById("subStatus").innerText = data.subscription_active ? "Active" : "Inactive";
+        document.getElementById("statusPanel").classList.add("active");
+        
+      } catch (err) {
+        console.error("Failed to load user status", err);
+      }
+    }
+
+    async function payTier(tierName, usdtAmount) {
+      if (!userAddress || !signer) {
+        showToast("Please connect wallet first.");
+        return;
+      }
+      
+      showToast("Initiating transaction...");
+      
+      try {
+        // Build contract instance
+        const usdtContract = new ethers.Contract(USDT_ADDRESS, ERC20_ABI, signer);
+        // USDT on X Layer has 6 decimals
+        const amountWei = ethers.utils.parseUnits(usdtAmount.toString(), 6);
+        
+        // Send actual transaction
+        const tx = await usdtContract.transfer(TREASURY, amountWei);
+        showToast("Transaction sent! Waiting for confirmation...");
+        
+        const receipt = await tx.wait();
+        showToast(`Payment confirmed! Tx: ${receipt.transactionHash.substring(0, 8)}...`);
+        
+        // Notify backend to unlock features
+        const verifyRes = await fetch(`/api/pay/${tierName}?wallet=${userAddress}&txHash=${receipt.transactionHash}`, { method: "POST" });
+        const data = await verifyRes.json();
+        
+        if (data.status === "success") {
+          updateUserStatus();
+          showToast(`Successfully purchased ${tierName === 'subscribe' ? 'Subscription' : 'Echo'}!`);
+        } else {
+          showToast("Backend verification failed.");
+        }
+        
+      } catch (err) {
+        console.error(err);
+        if (err.code === 4001 || err.code === "ACTION_REJECTED") {
+            showToast("Transaction cancelled by user.");
+        } else {
+            showToast("Transaction failed. Please ensure you have sufficient USDT and OKB for gas.");
+        }
+      }
+    }
+  </script>
 </body>
 </html>

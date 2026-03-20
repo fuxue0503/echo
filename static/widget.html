@@ -120,7 +120,7 @@
     .unlock-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .pay-status { font-size: 10px; color: var(--dim); text-align: center; flex-shrink: 0; }
     .audio-player { width: 100%; border-radius: 6px; accent-color: var(--idle); flex-shrink: 0; height: 32px; }
-    .audio-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; flex-shrink: 0; padding-bottom: 4px; }
+    .x402-detail {
       font-size: 9px; color: var(--dim); line-height: 1.6;
       background: rgba(0,212,200,0.04); border: 1px solid rgba(0,212,200,0.1);
       border-radius: 6px; padding: 6px 8px; display: none;
@@ -190,10 +190,6 @@
     <div class="waiting card" id="waiting-panel">
       <span style="font-size:13px;">在交易中保持不动心</span>
       <span style="font-size:10px;color:rgba(232,233,240,0.25);">输入钱包地址后自动连接，获得基于真实持仓的 AI 冥想</span>
-      <div style="display:flex; gap:8px; margin-top:10px;">
-        <button class="demo-pill" data-s="profit_high" data-i18n="test_profit" style="font-size:10px; padding:4px 8px; border-radius:4px; background:rgba(0,212,200,0.1); border:1px solid rgba(0,212,200,0.3); color:#fff; cursor:pointer;">测试 AI (大盈)</button>
-        <button class="demo-pill" data-s="loss_high" data-i18n="test_loss" style="font-size:10px; padding:4px 8px; border-radius:4px; background:rgba(255,60,100,0.1); border:1px solid rgba(255,60,100,0.3); color:#fff; cursor:pointer;">测试 AI (大亏)</button>
-      </div>
     </div>
     <!-- Philosophical Card (hidden until data loaded) -->
     <div class="card" id="card" style="display:none;"></div>
@@ -274,9 +270,6 @@ const i18n = {
     alert: 'ALERT · 干预模式',
     wallet_placeholder: '输入钱包地址 0x...',
     connect: '连接',
-    test_profit: '测试 AI (大盈)',
-    test_loss: '测试 AI (大亏)',
-    meditation: '在交易中保持不动心',
     automatic: '输入钱包地址后自动连接，获得基于真实持仓的 AI 冥想',
     ai_badge: '✦ AI 洞见'
   },
@@ -286,9 +279,6 @@ const i18n = {
     alert: 'ALERT · Intervention',
     wallet_placeholder: 'Wallet address 0x...',
     connect: 'Connect',
-    test_profit: 'Test AI (Profit)',
-    test_loss: 'Test AI (Loss)',
-    meditation: 'Stay Mindful in Trading',
     automatic: 'Auto-connect to get real-trade AI meditation',
     ai_badge: '✦ AI Insight'
   }
@@ -311,9 +301,6 @@ function updateUIStrings() {
   if (waitingPanel) {
     waitingPanel.querySelector('span:nth-child(1)').textContent = t.meditation;
     waitingPanel.querySelector('span:nth-child(2)').textContent = t.automatic;
-    const demoButtons = waitingPanel.querySelectorAll('.demo-pill');
-    demoButtons[0].textContent = t.test_profit;
-    demoButtons[1].textContent = t.test_loss;
   }
   
   // Wallet Section
@@ -357,6 +344,10 @@ async function loadPnl(wallet) {
     const d = await res.json();
     if (d.error) { setWalletStatus('⚠ '+d.error, true); setState('IDLE'); return; }
     currentMode = d.mode; currentLevel = d.level; currentPnl = d.total_pnl_usd||0;
+    
+    // Update global payment state from server response
+    isPaid = !!(d.audio_available || d.audio_b64);
+    
     setState(d.orb_state||'MONITORING');
     setLevel(d.level, d.mode);
     renderCard(d);
@@ -366,23 +357,6 @@ async function loadPnl(wallet) {
   finally { showLoading(false); }
 }
 
-async function loadDemo(scenario) {
-  showLoading(true);
-  currentWallet = null;
-  const t = i18n[currentLang];
-  setWalletStatus(currentLang === 'cn' ? '测试 AI 生成中...' : 'Generating Test AI...', false);
-  try {
-    const res = await fetch(`/api/demo?scenario=${scenario}&lang=${currentLang}`);
-    const d = await res.json();
-    currentMode = d.mode; currentLevel = d.level; currentPnl = d.total_pnl_usd||0;
-    setState(d.orb_state||'MONITORING');
-    setLevel(d.level, d.mode);
-    renderCard(d);
-    const badge = d.personalized ? t.ai_badge : '';
-    setWalletStatus(currentLang === 'cn' ? `✓ 测试数据已加载 ${badge}` : `✓ Test Data Loaded ${badge}`, false);
-  } catch(e) { console.error(e); }
-  finally { showLoading(false); }
-}
 
 // ─── Card Renderer ─────────────────────────────────────────────────────────────
 function renderCard(d) {
@@ -414,8 +388,8 @@ function renderCard(d) {
       <div id="audio-gen-wrap" style="display: ${d.audio_b64 ? 'none' : 'block'};">
         ${isPaid
           ? `<button class="unlock-btn" id="gen-audio-btn">🔊 ${currentLang==='cn'?'生成语音冥想':'Generate Voice Meditation'}</button>`
-          : `<button class="unlock-btn" id="unlock-btn">🔓 ${currentLang==='cn'?'解锁语音冥想':'Unlock Voice Meditation'} · 0.10 USDG</button>
-             <div class="pay-status" id="pay-status">${currentLang==='cn'?'通过 x402 单次付费解锁':'Pay once via x402 to unlock'}</div>
+          : `<button class="unlock-btn" id="unlock-btn">🔓 ${currentLang==='cn'?'解锁语音冥想':'Unlock Voice Meditation'} · 1.00 USDT</button>
+             <div class="pay-status" id="pay-status">${currentLang==='cn'?'通过浏览器钱包支付解锁':'Unlock via browser wallet payment'}</div>
              <div class="x402-detail" id="x402-detail"></div>`
         }
       </div>
@@ -437,7 +411,6 @@ function renderCard(d) {
 async function unlockAudio() {
   const btn = document.getElementById('unlock-btn');
   const statusEl = document.getElementById('pay-status');
-  const detailEl = document.getElementById('x402-detail');
   if (!btn) return;
 
   const wallet = currentWallet || document.getElementById('wallet-input').value.trim();
@@ -446,36 +419,25 @@ async function unlockAudio() {
     return;
   }
 
-  btn.disabled = true;
-  btn.textContent = '⏳ 发起支付...';
-  statusEl.textContent = '正在通过 onchainos x402-pay 签署支付...';
-
+  // 1. Double check with server if they actually have credits first
   try {
-    const res = await fetch(`/api/pay?wallet=${encodeURIComponent(wallet)}`, { method: 'POST' });
-    const d = await res.json();
-
-    if (res.ok && d.paid) {
+    const res = await fetch(`/api/user/status?wallet=${encodeURIComponent(wallet)}`);
+    const user = await res.json();
+    if (user.credits > 0 || user.subscription_active) {
       isPaid = true;
-      statusEl.textContent = '✅ 支付成功！正在生成语音冥想...';
-      btn.textContent = '✅ 已解锁';
-      // Auto-generate audio
+      statusEl.textContent = '✅ 已检测到余额，正在生成...';
       await genAudio(wallet);
-    } else if (res.status === 402) {
-      // Show x402 details
-      statusEl.textContent = '需要支付以下费用：';
-      detailEl.style.display = 'block';
-      detailEl.textContent = `网络: X Layer (eip155:196)\n金额: 0.10 USDG\n收款方: ${d.detail||'demo address'}`;
-      btn.disabled = false;
-      btn.textContent = '🔓 确认支付 0.10 USDG';
-    } else {
-      statusEl.textContent = '⚠ ' + (d.error || '支付失败');
-      btn.disabled = false;
-      btn.textContent = '🔓 解锁语音冥想 · 0.10 USDG';
+      return;
     }
-  } catch(e) {
-    statusEl.textContent = '⚠ 网络错误，请重试';
-    btn.disabled = false;
-    btn.textContent = '🔓 解锁语音冥想 · 0.10 USDG';
+  } catch(e) {}
+
+  // 2. If no credits, redirect to system browser to pay
+  const payUrl = window.location.origin + '/'; 
+  if (window.electronOrb && window.electronOrb.openExternal) {
+    statusEl.textContent = '正在调起系统浏览器进行支付...';
+    window.electronOrb.openExternal(payUrl);
+  } else {
+    window.open(payUrl, '_blank');
   }
 }
 
@@ -529,10 +491,6 @@ document.getElementById('wallet-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('connect-btn').click();
 });
 
-// ─── Demo Pills ────────────────────────────────────────────────────────────────
-document.querySelectorAll('.demo-pill').forEach(b => {
-  b.addEventListener('click', () => { isPaid = false; loadDemo(b.dataset.s); });
-});
 
 // ─── Window Controls (Electron IPC) ───────────────────────────────────────────
 const dragBar = document.getElementById('drag-bar');

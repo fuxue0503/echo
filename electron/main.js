@@ -6,7 +6,7 @@
  * Connects to the FastAPI server on localhost:8888.
  */
 
-const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, shell } = require('electron');
 const path = require('path');
 
 let orbWindow = null;
@@ -74,6 +74,10 @@ ipcMain.on('minimize-orb', () => {
 
 ipcMain.on('quit-orb', () => {
   app.quit();
+});
+
+ipcMain.on('open-external', (event, url) => {
+  shell.openExternal(url);
 });
 
 // ── App lifecycle ────────────────────────────────────────────────────────────
