@@ -8,8 +8,6 @@
 
 ---
 
-<a name="english"></a>
-## 🇺🇸 English Version
 
 ### **Overview**
 **Echo** is a state-of-the-art trading companion for the **X Layer** ecosystem. It transforms dry on-chain data into a living, breathing visual orb and a philosophical voice, helping traders maintain mental equanimity amid market volatility.
@@ -35,7 +33,7 @@ The **Orb** is a desktop-native widget that reflects your "Trading Soul":
 ---
 
 <a name="chinese"></a>
-## 🇨🇳 中文版
+##  中文版
 
 ### **项目简介**
 **Echo** 是为 **X Layer** 生态系统打造的顶尖交易伴侣。它将枯燥的链上数据转化为一个“有呼吸、有生命”的视觉灵动球（The Orb）和富有哲学深度的语音建议，帮助交易者在市场波动中保持内心的平静。
