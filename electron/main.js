@@ -41,14 +41,18 @@ function createOrbWindow() {
     },
   });
 
+  const SERVER_URL = process.env.ECHO_SERVER_URL || 'http://localhost:8888';
+  // TODO: Before the hackathon deadline, replace 'http://localhost:8888' with your ngrok URL.
+  // e.g., const SERVER_URL = 'https://fc3a-12-34-56.ngrok-free.app';
+
   // Load the widget page from the FastAPI server
-  orbWindow.loadURL('http://localhost:8888/widget');
+  orbWindow.loadURL(`${SERVER_URL}/widget`);
 
   // If server isn't running yet, load a fallback
   orbWindow.webContents.on('did-fail-load', () => {
-    console.log('[Orb] Server not ready, retrying in 2s...');
+    console.log(`[Orb] Server not ready at ${SERVER_URL}, retrying in 2s...`);
     setTimeout(() => {
-      orbWindow.loadURL('http://localhost:8888/widget');
+      orbWindow.loadURL(`${SERVER_URL}/widget`);
     }, 2000);
   });
 
